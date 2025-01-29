@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "locksmith"
+version = "0.1.0"
+description = ""
+authors = ["YADHU KRISHNA P V <116164765+yadhu12345@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+django = "^5.1.5"
+djangorestframework-simplejwt = "^5.4.0"
+django-cors-headers = "^4.6.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
