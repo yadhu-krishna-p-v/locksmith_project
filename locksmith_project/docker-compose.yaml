@@ -1,0 +1,18 @@
+services:
+  lock_app:
+      container_name: lock-app
+      image: coems/lock-app
+      restart: always
+      build:
+        context: .
+        dockerfile: ./Dockerfile
+      command: python manage.py runserver 0.0.0.0:8000
+      volumes:
+        - .:/code
+      ports:
+        - 8008:8000
+      networks:
+        - local-network
+networks:
+  local-network:
+    external: true

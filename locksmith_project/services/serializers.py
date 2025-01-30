@@ -6,7 +6,9 @@ class ServiceCategorySerializer(serializers.ModelSerializer):
         model = ServiceCategory
         fields = '__all__'
 
+
 class ServiceRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceRequest
         fields = '__all__'
+        extra_kwargs = {'customer': {'read_only': True}}
