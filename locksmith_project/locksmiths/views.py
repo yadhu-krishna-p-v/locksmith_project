@@ -38,3 +38,15 @@ def approve_locksmith(request, locksmith_id):
         return Response({'message': 'Locksmith approved successfully'})
     except LocksmithProfile.DoesNotExist:
         return Response({'error': 'Locksmith not found'}, status=404)
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])  # Only admins can reject
+def reject_locksmith(request, locksmith_id):
+    """Admin rejects a locksmith (deletes profile)"""
+    try:
+        locksmith = LocksmithProfile.objects.get(id=locksmith_id)
+        locksmith.delete()
+        return Response({"message": "Locksmith rejected and profile deleted"})
+    except LocksmithProfile.DoesNotExist:
+        return Response({"error": "Locksmith not found"}, status=404)

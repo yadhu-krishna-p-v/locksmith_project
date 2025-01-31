@@ -1,6 +1,7 @@
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework import generics
+from django.db.models import Sum, Count
 from .models import Transaction
 from .serializers import TransactionSerializer
 import razorpay
@@ -8,6 +9,7 @@ from django.conf import settings
 from .models import Transaction
 from services.models import ServiceRequest
 from rest_framework.decorators import api_view, permission_classes
+from locksmiths.models import LocksmithProfile
 
 class TransactionListView(generics.ListCreateAPIView):
     """Customers can make payments"""
@@ -143,3 +145,29 @@ def process_payout(request, transaction_id):
     
     except Exception as e:
         return Response({"error": str(e)}, status=400)
+
+
+@api_view(["GET"])
+@permission_classes([IsAdminUser])  # Only admins can access
+def get_admin_dashboard_stats(request):
+    """Retrieve platform statistics for the admin dashboard"""
+    total_revenue = Transaction.objects.aggregate(total=Sum("amount"))["total"] or 0
+    total_transactions = Transaction.objects.count()
+    total_locksmiths = LocksmithProfile.objects.count()
+    total_services_requested = ServiceRequest.objects.count()
+
+    # Top locksmiths based on completed jobs
+    top_locksmiths = (
+        ServiceRequest.objects.filter(status="completed")
+        .values("locksmith__user__username")
+        .annotate(completed_jobs=Count("id"))
+        .order_by("-completed_jobs")[:5]
+    )
+
+    return Response({
+        "total_revenue": total_revenue,
+        "total_transactions": total_transactions,
+        "total_locksmiths": total_locksmiths,
+        "total_services_requested": total_services_requested,
+        "top_locksmiths": list(top_locksmiths),
+    })
