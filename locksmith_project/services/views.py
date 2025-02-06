@@ -96,3 +96,46 @@ def get_nearby_requests(request):
 
     serializer = ServiceRequestSerializer(nearby_requests, many=True)
     return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_pending_requests(request):
+    """Retrieve all pending job requests for the locksmith"""
+    locksmith = request.user.locksmithprofile
+    pending_requests = ServiceRequest.objects.filter(status="pending")
+    serializer = ServiceRequestSerializer(pending_requests, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def accept_service_request(request, service_id):
+    """Locksmith accepts a service request"""
+    try:
+        service_request = ServiceRequest.objects.get(id=service_id, status="pending")
+        locksmith = request.user.locksmithprofile
+
+        service_request.locksmith = locksmith
+        service_request.status = "accepted"
+        service_request.save()
+
+        return Response({"message": "Service request accepted successfully"})
+
+    except ServiceRequest.DoesNotExist:
+        return Response({"error": "Service request not found or already accepted"}, status=404)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def reject_service_request(request, service_id):
+    """Locksmith rejects a service request"""
+    try:
+        service_request = ServiceRequest.objects.get(id=service_id, status="pending")
+        service_request.status = "rejected"
+        service_request.save()
+
+        return Response({"message": "Service request rejected"})
+
+    except ServiceRequest.DoesNotExist:
+        return Response({"error": "Service request not found or already processed"}, status=404)
