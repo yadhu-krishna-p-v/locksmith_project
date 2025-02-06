@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
 from rest_framework.decorators import api_view, permission_classes
+from math import radians, cos, sin, sqrt, atan2
 
 class ServiceCategoryListView(generics.ListCreateAPIView):
     queryset = ServiceCategory.objects.all()
@@ -63,3 +64,35 @@ def admin_cancel_service_request(request, service_id):
     
     except ServiceRequest.DoesNotExist:
         return Response({"error": "Service request not found"}, status=404)
+    
+    
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """Calculate distance between two coordinates using Haversine formula"""
+    R = 6371  # Earth radius in km
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat/2) * sin(dlat/2) + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2) * sin(dlon/2)
+    c = 2 * atan2(sqrt(a), sqrt(1-a))
+    return R * c
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_nearby_requests(request):
+    """Locksmith gets service requests within their service area"""
+    locksmith = request.user.locksmithprofile
+    requests = ServiceRequest.objects.all()
+    nearby_requests = []
+
+    for req in requests:
+        if req.customer.profile.location_latitude and req.customer.profile.location_longitude:
+            distance = calculate_distance(
+                locksmith.location_latitude,
+                locksmith.location_longitude,
+                req.customer.profile.location_latitude,
+                req.customer.profile.location_longitude
+            )
+            if distance <= locksmith.service_radius_km:
+                nearby_requests.append(req)
+
+    serializer = ServiceRequestSerializer(nearby_requests, many=True)
+    return Response(serializer.data)

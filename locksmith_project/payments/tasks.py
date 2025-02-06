@@ -57,3 +57,38 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(hour=0, minute=0),  # Runs daily at midnight
     },
 }
+
+
+@shared_task
+def process_payouts():
+    """Send payments to locksmiths after commission deduction"""
+    transactions = Transaction.objects.filter(paid_to_locksmith=False)
+
+    for transaction in transactions:
+        locksmith = transaction.service_request.locksmith.user
+        commission = transaction.amount * (settings.PLATFORM_COMMISSION_PERCENTAGE / 100)
+        payout_amount = transaction.amount - commission
+
+        # Process payout
+        payout = razorpay_client.payout.create({
+            "account_number": "your-razorpayx-account-number",
+            "amount": int(payout_amount * 100),
+            "currency": "INR",
+            "mode": "UPI" if locksmith.upi_id else "NEFT",
+            "purpose": "payout",
+            "fund_account": {
+                "account_type": "vpa" if locksmith.upi_id else "bank_account",
+                "vpa": {"address": locksmith.upi_id} if locksmith.upi_id else None,
+                "bank_account": {
+                    "name": locksmith.full_name,
+                    "ifsc": locksmith.ifsc_code,
+                    "account_number": locksmith.bank_account,
+                } if locksmith.bank_account else None,
+            },
+            "notes": {"service_request_id": transaction.service_request.id}
+        })
+
+        # Mark transaction as paid
+        transaction.paid_to_locksmith = True
+        transaction.razorpay_payout_id = payout["id"]
+        transaction.save()

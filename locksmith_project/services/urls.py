@@ -4,7 +4,8 @@ from .views import (
         ServiceRequestListCreateView,
         ServiceRequestDetailView,
         admin_service_requests,
-        admin_cancel_service_request
+        admin_cancel_service_request,
+        get_nearby_requests
     )
 
 urlpatterns = [
@@ -13,4 +14,5 @@ urlpatterns = [
     path('<int:pk>/', ServiceRequestDetailView.as_view(), name='service-request-detail'),
     path("admin/all-requests/", admin_service_requests, name="admin_service_requests"),
     path("admin/cancel-request/<int:service_id>/", admin_cancel_service_request, name="admin_cancel_service_request"),
+    path("nearby-requests/", get_nearby_requests, name="get_nearby_requests"),
 ]
